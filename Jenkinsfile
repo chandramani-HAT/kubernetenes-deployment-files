@@ -80,7 +80,7 @@ pipeline {
           fi
           kubectl get crds | grep external-secrets
           # Wait for CRDs to be registered
-          sleep 15
+          sleep 30
           # Wait for operator pods to be ready
           kubectl rollout status deployment/external-secrets -n external-secrets --timeout=120s || true
           kubectl get pods -n external-secrets
