@@ -140,6 +140,12 @@ pipeline {
         }
     }
 
+    stage('Apply Ingress class  Manifest') {
+      steps {
+          sh 'kubectl apply -f ingress-class.yaml -n $EKS_NAMESPACE'
+        }
+      }
+
     stage('Apply Ingress Manifest') {
       steps {
           sh 'kubectl apply -f ingress.yaml -n $EKS_NAMESPACE'
