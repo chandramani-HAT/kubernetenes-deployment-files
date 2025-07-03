@@ -9,6 +9,7 @@ pipeline {
     ECR_SECRET_NAME = 'ecr-creds'
     HOME = '/home/ubuntu'
     KUBECONFIG = "${HOME}/.kube/config"
+    CLUSTER_NAME = 'kubernetes'
   }
 
   stages {
