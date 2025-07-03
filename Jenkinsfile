@@ -181,7 +181,6 @@ stage('Patch providerID for all nodes') {
       #!/bin/sh
       set -e
 
-      # Get all node names and their internal IPs
       nodes_json=$(kubectl get nodes -o json)
       node_count=$(echo "$nodes_json" | jq '.items | length')
 
@@ -190,11 +189,12 @@ stage('Patch providerID for all nodes') {
         node_name=$(echo "$nodes_json" | jq -r ".items[$i].metadata.name")
         internal_ip=$(echo "$nodes_json" | jq -r ".items[$i].status.addresses[] | select(.type==\\"InternalIP\\") | .address")
 
-        # Get instance ID and AZ using AWS CLI
+        echo "Processing node: $node_name with internal IP: $internal_ip"
+
         instance_info=$(aws ec2 describe-instances \
           --filters "Name=private-ip-address,Values=$internal_ip" \
           --query "Reservations[0].Instances[0].[InstanceId,Placement.AvailabilityZone]" \
-          --output text)
+          --output text 2>/dev/null || true)
 
         instance_id=$(echo "$instance_info" | awk '{print $1}')
         az=$(echo "$instance_info" | awk '{print $2}')
@@ -206,8 +206,19 @@ stage('Patch providerID for all nodes') {
         fi
 
         provider_id="aws:///$az/$instance_id"
-        echo "Patching $node_name ($internal_ip) with providerID: $provider_id"
-        kubectl patch node "$node_name" -p "{\"spec\":{\"providerID\":\"$provider_id\"}}"
+        echo "Patching $node_name with providerID: $provider_id"
+
+        # Patch with clean and safe JSON using heredoc
+        patch_json=$(cat <<EOF
+{
+  "spec": {
+    "providerID": "$provider_id"
+  }
+}
+EOF
+)
+
+        echo "$patch_json" | kubectl patch node "$node_name" --patch-file=/dev/stdin
 
         i=$((i + 1))
       done
