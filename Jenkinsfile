@@ -70,10 +70,15 @@ pipeline {
         sh '''
           helm repo add external-secrets https://charts.external-secrets.io
           helm repo update
-          helm install external-secrets external-secrets/external-secrets \
-            -n external-secrets \
-            --create-namespace \
-            --set installCRDs=true
+          if helm list -n external-secrets --filter '^external-secrets$' | grep external-secrets; then
+            echo "external-secrets release already exists, skipping installation."
+          else
+            helm install external-secrets external-secrets/external-secrets \
+              -n external-secrets \
+              --create-namespace \
+              --set installCRDs=true
+          fi
+          kubectl get crds | grep external-secrets
           # Wait for CRDs to be registered
           sleep 15
           # Wait for operator pods to be ready
