@@ -28,6 +28,8 @@ pipeline {
       }
     }
 
+    
+
     stage('Create ECR imagePullSecret') {
       steps {
         script {
