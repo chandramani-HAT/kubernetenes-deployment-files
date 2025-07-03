@@ -230,6 +230,7 @@ EOF
     stage('Apply Ingress class  Manifest') {
       steps {
           sh 'kubectl apply set-last-applied -f ingress-class.yaml --create-annotation=true -n $EKS_NAMESPACE'
+          sh 'sleep 30'
         }
       }
 
