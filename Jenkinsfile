@@ -174,6 +174,34 @@ pipeline {
         sh 'kubectl get pods -n kube-system | grep aws-load-balancer-controller'
       }
     }
+stage('Patch providerID for all nodes') {
+  steps {
+    sh '''
+      #!/bin/bash
+      set -e
+      nodes_json=$(kubectl get nodes -o json)
+      node_count=$(echo "$nodes_json" | jq '.items | length')
+      for i in $(seq 0 $((node_count - 1))); do
+        node_name=$(echo "$nodes_json" | jq -r ".items[$i].metadata.name")
+        internal_ip=$(echo "$nodes_json" | jq -r ".items[$i].status.addresses[] | select(.type==\\"InternalIP\\") | .address")
+        instance_info=$(aws ec2 describe-instances \
+          --filters "Name=private-ip-address,Values=$internal_ip" \
+          --query "Reservations[0].Instances[0].[InstanceId,Placement.AvailabilityZone]" \
+          --output text)
+        instance_id=$(echo "$instance_info" | awk '{print $1}')
+        az=$(echo "$instance_info" | awk '{print $2}')
+        if [[ -z "$instance_id" || -z "$az" ]]; then
+          echo "Could not find instance info for $node_name ($internal_ip), skipping..."
+          continue
+        fi
+        provider_id="aws:///$az/$instance_id"
+        echo "Patching $node_name ($internal_ip) with providerID: $provider_id"
+        kubectl patch node "$node_name" -p "{\"spec\":{\"providerID\":\"$provider_id\"}}"
+      done
+    '''
+  }
+}
+
 
     stage('Apply Ingress class  Manifest') {
       steps {
