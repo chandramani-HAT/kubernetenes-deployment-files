@@ -1,0 +1,133 @@
+pipeline {
+  agent { label 'master' }
+
+  environment {
+    AWS_REGION = 'us-east-1'
+    EKS_CLUSTER_NAME = 'your-eks-cluster'
+    EKS_NAMESPACE = 'document-expert'
+    ECR_REGISTRY = '028892270743.dkr.ecr.us-east-1.amazonaws.com'
+    ECR_SECRET_NAME = 'ecr-creds'
+  }
+
+  stages {
+    stage('Create ECR imagePullSecret') {
+      steps {
+        script {
+          // Delete old secret if it exists (ignore error)
+          sh "kubectl delete secret ${ECR_SECRET_NAME} -n ${EKS_NAMESPACE} || true"
+          // Create new secret with current ECR token
+          sh '''
+            PASSWORD=$(aws ecr get-login-password --region $AWS_REGION)
+            kubectl create secret docker-registry $ECR_SECRET_NAME \
+              --docker-server=$ECR_REGISTRY \
+              --docker-username=AWS \
+              --docker-password="$PASSWORD" \
+              --namespace=$EKS_NAMESPACE
+          '''
+        }
+      }
+    }
+
+    stage('Install Helm') {
+      steps {
+        sh '''
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
+          helm version
+        '''
+      }
+    }
+
+    stage('Install External Secrets Operator') {
+      steps {
+        sh '''
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm repo update
+          helm install external-secrets external-secrets/external-secrets \
+            -n external-secrets \
+            --create-namespace \
+            --set installCRDs=true
+          kubectl get crds | grep external-secrets
+        '''
+      }
+    }
+
+    stage('Set up kubeconfig') {
+      steps {
+        sh "aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME"
+      }
+    }
+
+    stage('Apply External Secrets') {
+      steps {
+        dir('EKS-Deployment') {
+          sh 'kubectl apply -f external-secrets/ -n $EKS_NAMESPACE'
+        }
+      }
+    }
+
+    stage('Apply Postgres Manifest') {
+      steps {
+        dir('EKS-Deployment') {
+          sh '''
+            kubectl apply -f postgres/ -n $EKS_NAMESPACE
+            kubectl rollout status deployment/postgres -n $EKS_NAMESPACE || true
+          '''
+        }
+      }
+    }
+
+    stage('Apply Redis Manifest') {
+      steps {
+        dir('EKS-Deployment') {
+          sh '''
+            kubectl apply -f redis/ -n $EKS_NAMESPACE
+            kubectl rollout status deployment/redis -n $EKS_NAMESPACE || true
+          '''
+        }
+      }
+    }
+
+    stage('Apply Celery Manifest') {
+      steps {
+        dir('EKS-Deployment') {
+          sh '''
+            kubectl apply -f backend/ -n $EKS_NAMESPACE
+            kubectl rollout status deployment/celery -n $EKS_NAMESPACE || true
+          '''
+        }
+      }
+    }
+
+    stage('Apply Backend Manifest') {
+      steps {
+        dir('EKS-Deployment') {
+          sh '''
+            kubectl apply -f backend/ -n $EKS_NAMESPACE
+            kubectl rollout status deployment/backend -n $EKS_NAMESPACE || true
+          '''
+        }
+      }
+    }
+
+    stage('Apply Frontend Manifest') {
+      steps {
+        dir('EKS-Deployment') {
+          sh '''
+            kubectl apply -f frontend/ -n $EKS_NAMESPACE
+            kubectl rollout status deployment/frontend -n $EKS_NAMESPACE || true
+          '''
+        }
+      }
+    }
+
+    stage('Apply Ingress Manifest') {
+      steps {
+        dir('EKS-Deployment') {
+          sh 'kubectl apply -f ingress.yaml -n $EKS_NAMESPACE'
+        }
+      }
+    }
+  }
+}

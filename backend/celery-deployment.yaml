@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery
+  namespace: document-expert
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery
+  template:
+    metadata:
+      labels:
+        app: celery
+    spec:
+      containers:
+        - name: celery
+          image: 028892270743.dkr.ecr.us-east-1.amazonaws.com/document_expert-celery:<TAG>
+          imagePullPolicy: Always
+          command: ["celery"]
+          args: ["-A", "src.api.document.celery_worker", "worker", "--loglevel=info"]
+          envFrom:
+            - secretRef:
+                name: backend-secret
+      imagePullSecrets:
+        - name: ecr-creds

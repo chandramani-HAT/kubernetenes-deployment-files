@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: document-expert
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: 028892270743.dkr.ecr.us-east-1.amazonaws.com/document_expert-backend:<TAG>
+          imagePullPolicy: Always
+          command: ["bash", "-c"]
+          args:
+            - alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: backend-secret
+      imagePullSecrets:
+        - name: ecr-creds
