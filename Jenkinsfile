@@ -7,9 +7,27 @@ pipeline {
     EKS_NAMESPACE = 'document-expert'
     ECR_REGISTRY = '028892270743.dkr.ecr.us-east-1.amazonaws.com'
     ECR_SECRET_NAME = 'ecr-creds'
+    HOME = '/var/lib/jenkins'
+    KUBECONFIG = "${HOME}/.kube/config"
   }
 
   stages {
+    stage('Checkout') {
+      steps {
+        git(
+        branch: 'main',
+        credentialsId: 'github-repo',
+        url: 'https://github.com/chandramani-HAT/kubernetenes-deployment-files.git'
+        )
+      }
+    }
+
+    stage('Test kubectl') {
+      steps {
+        sh 'kubectl get nodes'
+      }
+    }
+
     stage('Create ECR imagePullSecret') {
       steps {
         script {
@@ -50,12 +68,6 @@ pipeline {
             --set installCRDs=true
           kubectl get crds | grep external-secrets
         '''
-      }
-    }
-
-    stage('Set up kubeconfig') {
-      steps {
-        sh "aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME"
       }
     }
 
