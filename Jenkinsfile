@@ -3,7 +3,6 @@ pipeline {
 
   environment {
     AWS_REGION = 'us-east-1'
-    EKS_CLUSTER_NAME = 'your-eks-cluster'
     EKS_NAMESPACE = 'document-expert'
     ECR_REGISTRY = '028892270743.dkr.ecr.us-east-1.amazonaws.com'
     ECR_SECRET_NAME = 'ecr-creds'
