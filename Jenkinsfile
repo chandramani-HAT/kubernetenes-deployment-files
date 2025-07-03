@@ -7,7 +7,7 @@ pipeline {
     EKS_NAMESPACE = 'document-expert'
     ECR_REGISTRY = '028892270743.dkr.ecr.us-east-1.amazonaws.com'
     ECR_SECRET_NAME = 'ecr-creds'
-    HOME = '/var/lib/jenkins'
+    HOME = '/home/ubuntu'
     KUBECONFIG = "${HOME}/.kube/config"
   }
 
