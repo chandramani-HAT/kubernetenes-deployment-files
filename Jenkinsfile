@@ -28,7 +28,13 @@ pipeline {
       }
     }
 
-    
+    stage('Create namespaces') {
+      steps {
+        sh 'kubectl apply -f namespaces.yaml'
+      }
+    }    
+
+
 
     stage('Create ECR imagePullSecret') {
       steps {
@@ -75,73 +81,59 @@ pipeline {
 
     stage('Apply External Secrets') {
       steps {
-        dir('EKS-Deployment') {
           sh 'kubectl apply -f external-secrets/ -n $EKS_NAMESPACE'
         }
-      }
     }
 
     stage('Apply Postgres Manifest') {
       steps {
-        dir('EKS-Deployment') {
           sh '''
             kubectl apply -f postgres/ -n $EKS_NAMESPACE
             kubectl rollout status deployment/postgres -n $EKS_NAMESPACE || true
           '''
         }
-      }
     }
 
     stage('Apply Redis Manifest') {
       steps {
-        dir('EKS-Deployment') {
           sh '''
             kubectl apply -f redis/ -n $EKS_NAMESPACE
             kubectl rollout status deployment/redis -n $EKS_NAMESPACE || true
           '''
         }
-      }
     }
 
     stage('Apply Celery Manifest') {
       steps {
-        dir('EKS-Deployment') {
           sh '''
             kubectl apply -f backend/ -n $EKS_NAMESPACE
             kubectl rollout status deployment/celery -n $EKS_NAMESPACE || true
           '''
-        }
       }
     }
 
     stage('Apply Backend Manifest') {
       steps {
-        dir('EKS-Deployment') {
           sh '''
             kubectl apply -f backend/ -n $EKS_NAMESPACE
             kubectl rollout status deployment/backend -n $EKS_NAMESPACE || true
           '''
-        }
       }
     }
 
     stage('Apply Frontend Manifest') {
       steps {
-        dir('EKS-Deployment') {
           sh '''
             kubectl apply -f frontend/ -n $EKS_NAMESPACE
             kubectl rollout status deployment/frontend -n $EKS_NAMESPACE || true
           '''
         }
-      }
     }
 
     stage('Apply Ingress Manifest') {
       steps {
-        dir('EKS-Deployment') {
           sh 'kubectl apply -f ingress.yaml -n $EKS_NAMESPACE'
         }
       }
-    }
   }
 }
