@@ -140,6 +140,39 @@ pipeline {
         }
     }
 
+    stage('Install cert-manager') {
+      steps {
+        sh '''
+          kubectl apply --validate=false -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.3/cert-manager.yaml
+          # Wait for cert-manager to be ready
+          kubectl rollout status deployment/cert-manager -n cert-manager --timeout=180s || true
+        '''
+      }
+    }
+    stage('Add Helm repo for AWS Load Balancer Controller') {
+      steps {
+        sh '''
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
+        '''
+      }
+    }
+    stage('Install/Upgrade AWS Load Balancer Controller') {
+      steps {
+        sh '''
+          helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+            -n kube-system \
+            --set clusterName=$CLUSTER_NAME
+        '''
+      }
+    }
+    stage('Verify Controller Deployment') {
+      steps {
+        sh 'kubectl get deployment -n kube-system aws-load-balancer-controller'
+        sh 'kubectl get pods -n kube-system | grep aws-load-balancer-controller'
+      }
+    }
+
     stage('Apply Ingress class  Manifest') {
       steps {
           sh 'kubectl apply -f ingress-class.yaml -n $EKS_NAMESPACE'
