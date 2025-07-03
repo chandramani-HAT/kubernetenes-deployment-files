@@ -17,7 +17,7 @@ spec:
     - http:
         paths:
           # Redirect all HTTP to HTTPS
-          - path: /*
+          - path: /
             pathType: Prefix
             backend:
               service:
