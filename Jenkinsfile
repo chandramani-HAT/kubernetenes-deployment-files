@@ -30,7 +30,7 @@ pipeline {
 
     stage('Create namespaces') {
       steps {
-        sh 'kubectl apply -f namespaces.yaml'
+        sh 'kubectl apply -f namespace.yaml'
       }
     }    
 
