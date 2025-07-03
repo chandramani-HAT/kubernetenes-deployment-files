@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: 028892270743.dkr.ecr.us-east-1.amazonaws.com/document_expert-frontend:<TAG>
+          image: 028892270743.dkr.ecr.us-east-1.amazonaws.com/document_expert-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

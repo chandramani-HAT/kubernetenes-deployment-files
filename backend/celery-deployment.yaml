@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: celery
-          image: 028892270743.dkr.ecr.us-east-1.amazonaws.com/document_expert-celery:<TAG>
+          image: 028892270743.dkr.ecr.us-east-1.amazonaws.com/document_expert-celery:latest
           imagePullPolicy: Always
           command: ["celery"]
           args: ["-A", "src.api.document.celery_worker", "worker", "--loglevel=info"]
